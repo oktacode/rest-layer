@@ -2,7 +2,7 @@
 
 REST APIs made easy.
 
-[![godoc](http://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](https://godoc.org/github.com/rs/rest-layer) [![license](http://img.shields.io/badge/license-MIT-red.svg?style=flat)](https://raw.githubusercontent.com/rs/rest-layer/master/LICENSE) [![build](https://img.shields.io/travis/rs/rest-layer.svg?style=flat)](https://travis-ci.org/rs/rest-layer) [![Go Report Card](https://goreportcard.com/badge/github.com/rs/rest-layer)](https://goreportcard.com/report/github.com/rs/rest-layer)
+[![godoc](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](https://godoc.org/github.com/rs/rest-layer) [![license](https://img.shields.io/badge/license-MIT-red.svg?style=flat)](https://raw.githubusercontent.com/rs/rest-layer/master/LICENSE) [![build](https://img.shields.io/travis/rs/rest-layer.svg?style=flat)](https://travis-ci.org/rs/rest-layer) [![Go Report Card](https://goreportcard.com/badge/github.com/rs/rest-layer)](https://goreportcard.com/report/github.com/rs/rest-layer)
 
 REST Layer is an API framework heavily inspired by the excellent [Python Eve](http://python-eve.org). It helps you create a comprehensive, customizable, and secure REST (graph) API on top of pluggable [backend storages](#storage-handlers) with no boiler plate code so you can focus on your business logic.
 
@@ -40,6 +40,16 @@ The REST Layer framework is composed of several sub-packages:
   - [Hooks](#hooks)
   - [Sub Resources](#sub-resources)
   - [Dependency](#dependency)
+- [HTTP Headers Support](#http-headers-support)
+  - [Prefer](#prefer)
+- [HTTP Methods](#http-methods)
+  - [HEAD](#head)
+  - [GET](#get)
+  - [POST](#post)
+  - [PUT](#put)
+  - [PATCH](#patch)
+  - [DELETE](#delete)
+  - [OPTIONS](#options)
 - [Quering](#quering)
   - [Filtering](#filtering)
   - [Sorting](#sorting)
@@ -52,16 +62,6 @@ The REST Layer framework is composed of several sub-packages:
 - [Authentication & Authorization](#authentication-and-authorization)
 - [Conditional Requests](#conditional-requests)
 - [Data Integrity & Concurrency Control](#data-integrity-and-concurrency-control)
-- [HTTP Headers Support](#http-headers-support)
-  - [Prefer](#prefer)
-- [HTTP Methods](#http-methods)
-  - [HEAD](#head)
-  - [GET](#get)
-  - [POST](#post)
-  - [PUT](#put)
-  - [PATCH](#patch)
-  - [DELETE](#delete)
-  - [OPTIONS](#options)
 - [Data Validation](#data-validation)
   - [Nullable Values](#nullable-values)
   - [Extensible Data Validation](#extensible-data-validation)
@@ -77,18 +77,12 @@ The REST Layer framework is composed of several sub-packages:
 
 ## Breaking Changes
 
-Until version 1.0 of rest-layer, breaking changes may occur at any time if you rely on the latest master version.
+Until we reach a stable v1, there will be occasional breaking changes to the
+rest-layer APIs. Breaking will however not arrive at patch releases.
 
-Below is an overview over recent breaking changes, starting from an arbitrary point with PR #151:
+Breaking changes since the latest minor release (v0.2.0), will be listed here.
 
-- PR #151: `ValuesValidator FieldValidator` attribute in `schema.Dict` struct replaced by `Values Field`.
-- PR #179: `ValuesValidator FieldValidator` attribute in `schema.Array` struct replaced by `Values Field`.
-- PR #204: 
-  - Storage drivers need to accept pointer to `Expression` implementer in `query.Predicate`.
-  - `filter` parameters in sub-query will be validated for type match.
-  - `filter` parameters will be validated for type match only, instead of type & constrains.
-
-From the next release and onwards (0.2), this list will summarize breaking changes done to master since the last release.
+For breaking changes arriving in v0.2.0, see the [Release Notes](https://github.com/rs/rest-layer/releases/tag/v0.2.0).
 
 ## Features
 
@@ -147,8 +141,8 @@ As REST Layer is a simple `net/http` handler. You can use standard middleware to
 - [x] [Memory](http://github.com/rs/rest-layer/tree/master/resource/testing/mem) (test only)
 - [x] [MongoDB](http://github.com/rs/rest-layer-mongo)
 - [x] [ElasticSearch](http://github.com/rs/rest-layer-es)
-- [x] [SQLite3](https://github.com/jxstanford/rest-layer-sqlite3) (third party)
-- [x] [Google Datastore](https://github.com/ajcrowe/rest-layer-datastore) (third party)
+- [x] [SQLite3](https://github.com/jxstanford/rest-layer-sqlite3) (third party, broken)
+- [x] [Google Datastore](https://github.com/ajcrowe/rest-layer-datastore) (third party, broken)
 - [ ] SQL
 - [ ] Redis
 - [ ] Google BigTable
@@ -834,7 +828,66 @@ post = schema.Schema{
 }
 ```
 
-## Quering
+## HTTP Headers Support
+
+### Prefer
+
+Currently supported values are:
+- [return=minimal](https://tools.ietf.org/html/rfc7240#section-4.2) - When request is successfull (HTTP Response Status of `200` or `201`), response body is not returned. For Response Status of `200 OK`, status becomes `204 No Content`. Usefull for `PUT`, `POST` and `PATCH` methods, where returned body will be known by the client.
+- [return-no-content](https://msdn.microsoft.com/en-us/library/hh537533.aspx) - same as `return=minimal`.
+
+```sh
+$ echo '[{"op": "add", "path":"/foo", "value": "bar"}]' | http PATCH :8080/users/ar6ej4mkj5lfl688d8lg If-Match:'"1234567890123456789012345678901234567890"' \
+Content-Type: application/json-patch+json \
+Prefer: return=minimal
+HTTP/1.1 204 No Content
+```
+
+## HTTP Methods
+
+Following HTTP Methods are supported currently.
+
+### HEAD
+
+The same as [GET](#get), except that it doesn't return any body.
+
+### GET
+
+Used to query a resource with its sub/embedded resources.
+
+### POST
+
+Used to create new resource document, where new `ID` is generated from the server.
+
+
+Used to create/update single resource document given its `ID`. Be aware when dealing with resource fields with `Default` set. Initial creation for such resources will set particular field to its default value if omitted, however on subsequent `PUT` calls this field will be deleted if omitted. If persistent `Default` field is needed use `{Required: true}` with it.
+
+### PATCH
+
+Used to update/patch single resource document given its `ID`. REST Layer supports following update protocols:
+
+- Simple filed replacement [RFC-5789](http://tools.ietf.org/html/rfc5789) - this protocol will udpate only supplied top level fields, and will leave other fields in the document intact. This means that this protocol can't delete fields. Using this protocol is specified with `Content-Type: application/json` HTTP Request header.
+
+- [JSON-Patch/RFC-6902](https://tools.ietf.org/html/rfc6902) - When patching deeply nested documents, it is more convenient to use protocol designed especially for this. Using this protocol is specified with `Content-Type: application/json-patch+json` HTTP Request header.
+
+If using `If-Match` concurrency control as described in the [data control and integrity section](#data-integrity-and-concurrency-control), you could potentially choose to calculate the body of new object client side. Note that the response body for a successful operation can be omitted by supplying a HTTP request header: `Prefer: return=minimal`.
+
+```sh
+$ echo '[{"op": "add", "path":"/foo", "value": "bar"}]' | http PATCH :8080/users/ar6ej4mkj5lfl688d8lg If-Match:'"1234567890123456789012345678901234567890"' \
+Content-Type: application/json-patch+json \
+Prefer: return=minimal
+HTTP/1.1 204 No Content
+```
+
+### DELETE
+
+Used to delete single resource document given its `ID`, or via [Query](#quering).
+
+### OPTIONS
+
+Used to tell the client, which HTTP Methods are supported on a given resource.
+
+## Querying
 
 When supplying query parameters be sure to honor URL encoding scheme. If you need to include `+` sign, use `%2B`, etc.
 
@@ -900,7 +953,7 @@ The flags are:
 |`i`   |case-insensitive                                                           | false
 |`m`   |multi-line mode: ^ and $ match begin/end line in addition to begin/end text| false
 |`s`   |let . match \n                                                             | false
-|`U`   |ungreedy: swap meaning of x\* and x\*?, x+ and x+?, etc                    | false
+|`U`   |non-greedy: swap meaning of x\* and x\*?, x+ and x+?, etc                  | false
 
 For example the following regular expression would match any document with a field `type` and its value `rest-layer`.
 
@@ -915,7 +968,7 @@ The same example with flags:
 ```
 
 However, keep in mind that Storers have to support regular expression and depending on the implementation of the storage handler the accepted syntax may vary.
-An error of `ErrNotImplemented` will be returned for those storage backends which do not support the `$regex` operator.
+An error of `ErrNotImplemented` will be returned for those storage back-ends which do not support the `$regex` operator.
 
 #### Filter operators
 
@@ -1170,59 +1223,6 @@ Last-Modified: Mon, 27 Jul 2015 19:36:19 GMT
 This time the update operation was accepted and we got a new `ETag` for the updated resource.
 
 Concurrency control header `If-Match` can be used with all mutation methods on item URLs: `PATCH` (update), `PUT` (replace) and `DELETE` (delete).
-
-## HTTP Headers Support
-
-### Prefer
-
-Currently supported values are:
-- [return=minimal](https://tools.ietf.org/html/rfc7240#section-4.2) - When request is successfull (HTTP Response Status of `200` or `201`), response body is not returned. For Response Status of `200 OK`, status becomes `204 No Content`. Usefull for `PUT`, `POST` and `PATCH` methods, where returned body will be known by the client.
-- [return-no-content](https://msdn.microsoft.com/en-us/library/hh537533.aspx) - same as `return=minimal`.
-
-```sh
-$ echo '[{"op": "add", "path":"/foo", "value": "bar"}]' | http PATCH :8080/users/ar6ej4mkj5lfl688d8lg If-Match:'"1234567890123456789012345678901234567890"' \
-Content-Type: application/json-patch+json \
-Prefer: return=minimal
-HTTP/1.1 204 No Content
-```
-
-## HTTP Methods
-
-Following HTTP Methods are supported currently.
-
-### HEAD
-The same as [GET](#get), except that it doesn't return any body.
-
-### GET
-Used to query a resource with its sub/embedded resources.
-
-### POST
-Used to create new resource document, where new `ID` is generated from the server.
-
-### PUT
-Used to create/update single resource document given its `ID`. Be aware when dealing with resource fields with `Default` set. Initial creation for such resources will set particular field to its default value if omitted, however on subsequent `PUT` calls this field will be deleted if omitted. If persistent `Default` field is needed use `{Required: true}` with it. 
-
-### PATCH
-Used to update/patch single resource document given its `ID`. REST Layer supports following update protocols:
-
-- Simple filed replacement [RFC-5789](http://tools.ietf.org/html/rfc5789) - this protocol will udpate only supplied top level fields, and will leave other fields in the document intact. This means that this protocol can't delete fields. Using this protocol is specified with `Content-Type: application/json` HTTP Request header.
-
-- [JSON-Patch/RFC-6902](https://tools.ietf.org/html/rfc6902) - When patching deeply nested documents, it is more convenient to use protocol designed especially for this. Using this protocol is specified with `Content-Type: application/json-patch+json` HTTP Request header.
-
-If using `If-Match` concurrency control as described in the [data control and integrity section](#data-integrity-and-concurrency-control), you could potentially choose to calculate the body of new object client side. Note that the response body for a successful operation can be omitted by supplying a HTTP request header: `Prefer: return=minimal`.
-
-```sh
-$ echo '[{"op": "add", "path":"/foo", "value": "bar"}]' | http PATCH :8080/users/ar6ej4mkj5lfl688d8lg If-Match:'"1234567890123456789012345678901234567890"' \
-Content-Type: application/json-patch+json \
-Prefer: return=minimal
-HTTP/1.1 204 No Content
-```
-
-### DELETE
-Used to delete single resource document given its `ID`, or via [Query](#quering).
-
-### OPTIONS
-Used to tell the client, which HTTP Methods are supported on a given resource.
 
 ## Data Validation
 
