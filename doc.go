@@ -16,8 +16,8 @@ handles HTTP conditional requests, caching, integrity checking for you.
 
 A powerful and extensible validation engine make sure that data comes
 pre-validated to your custom storage handlers. Generic resource handlers for
-MongoDB (http://github.com/rs/rest-layer-mongo), ElasticSearch
-(http://github.com/rs/rest-layer-es) and other databases are also available so
+MongoDB (http://github.com/oktacode/rest-layer-mongo), ElasticSearch
+(http://github.com/oktacode/rest-layer-es) and other databases are also available so
 you have few to no code to write to make the whole system work.
 
 Moreover, REST Layer let you create a graph API by linking resources between
@@ -35,7 +35,7 @@ REST Layer is composed of several sub-packages:
  - resource: Defines resources, manages the resource graph and manages the
    interface with resource storage handler.
 
-See https://github.com/rs/rest-layer/blob/master/README.md for full REST Layer
+See https://github.com/oktacode/rest-layer/blob/master/README.md for full REST Layer
 documentation.
 */
 package restlayer

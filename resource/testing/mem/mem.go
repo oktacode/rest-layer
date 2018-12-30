@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/rs/rest-layer/resource"
-	"github.com/rs/rest-layer/schema/query"
+	"github.com/oktacode/rest-layer/resource"
+	"github.com/oktacode/rest-layer/schema/query"
 )
 
 // MemoryHandler is an example handler storing data in memory.
@@ -196,6 +196,12 @@ func (m *MemoryHandler) find(ctx context.Context, q *query.Query) (*resource.Ite
 		list.Items = append(list.Items, item)
 	}
 	list.Total = len(list.Items)
+
+	// Aggregation
+	// TODO: Implement aggregation support
+	if len(q.Aggregate) > 0 {
+		return nil, resource.ErrNotImplemented
+	}
 
 	// Apply sort
 	if len(q.Sort) > 0 {

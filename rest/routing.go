@@ -7,8 +7,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/rs/rest-layer/resource"
-	"github.com/rs/rest-layer/schema/query"
+	"github.com/oktacode/rest-layer/resource"
+	"github.com/oktacode/rest-layer/schema/query"
 )
 
 // RouteMatch represent a REST request's matched resource with the method to
@@ -117,6 +117,11 @@ func findRoute(path string, index resource.Index, route *RouteMatch) error {
 				return nil
 			}
 
+			// Handle customs (/resource/custom)
+			if _, found := rsrc.GetCustom(id); found {
+				return nil
+			}
+
 			// Handle aliases (/resource/alias or /resource1/id1/resource2/alias).
 			if alias, found := rsrc.GetAlias(id); found {
 				// Apply aliases query to the request.
@@ -196,10 +201,12 @@ func (r *RouteMatch) Query() (*query.Query, *Error) {
 	switch r.Method {
 	case "DELETE":
 		qp.parsePredicate(r.Params)
+		qp.parseAggregate(r.Params)
 		qp.parseWindow(r.Params, false)
 		qp.parseSort(r.Params)
 	case "HEAD", "GET":
 		qp.parsePredicate(r.Params)
+		qp.parseAggregate(r.Params)
 		qp.parseWindow(r.Params, true)
 		qp.parseSort(r.Params)
 		qp.parseProjection(r.Params)
@@ -264,6 +271,21 @@ func (qp *queryParser) parsePredicate(params url.Values) {
 				qp.addIssue("filter", err.Error())
 			} else {
 				qp.q.Predicate = append(qp.q.Predicate, p...)
+			}
+		}
+	}
+}
+
+func (qp *queryParser) parseAggregate(params url.Values) {
+	if aggregations, found := params["aggregation"]; found {
+		// If several filter parameters are present, merge them using $and
+		for _, aggregation := range aggregations {
+			if a, err := query.ParseAggregate(aggregation); err != nil {
+				qp.addIssue("aggregation", err.Error())
+			} else if err := a.Prepare(qp.rsc.Validator()); err != nil {
+				qp.addIssue("aggregation", err.Error())
+			} else {
+				qp.q.Aggregate = append(qp.q.Aggregate, a...)
 			}
 		}
 	}

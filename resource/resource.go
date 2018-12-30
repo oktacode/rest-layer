@@ -7,8 +7,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/rs/rest-layer/schema"
-	"github.com/rs/rest-layer/schema/query"
+	"github.com/oktacode/rest-layer/schema"
+	"github.com/oktacode/rest-layer/schema/query"
 )
 
 // Resource holds information about a class of items exposed on the API.
@@ -22,6 +22,7 @@ type Resource struct {
 	conf        Conf
 	resources   subResources
 	aliases     map[string]url.Values
+	customs     map[string]func(*Item) *Item
 	hooks       eventHandler
 }
 
@@ -81,6 +82,7 @@ func newResource(name string, s schema.Schema, h Storer, c Conf) *Resource {
 		conf:      c,
 		resources: subResources{},
 		aliases:   map[string]url.Values{},
+		customs:   map[string]func(*Item) *Item{},
 	}
 }
 
@@ -174,6 +176,10 @@ func (r *Resource) Bind(name, field string, s schema.Schema, h Storer, c Conf) *
 				Description: "The filter query",
 				Validator:   schema.String{},
 			},
+			"aggregation": schema.Param{
+				Description: "The aggregation query",
+				Validator:   schema.String{},
+			},
 		},
 	}
 	return sr
@@ -206,6 +212,28 @@ func (r *Resource) GetAlias(name string) (url.Values, bool) {
 func (r *Resource) GetAliases() []string {
 	n := make([]string, 0, len(r.aliases))
 	for a := range r.aliases {
+		n = append(n, a)
+	}
+	return n
+}
+
+// Custom adds an pre-built resource query on /<resource>/<custom> with custom response and logic behind it.
+//
+// This method will panic an custom or a resource with the same name is already bound.
+func (r *Resource) Custom(name string, v func(*Item) *Item) {
+	r.customs[name] = v
+}
+
+// GetCustom returns the custom set for the name if any.
+func (r *Resource) GetCustom(name string) (func(*Item) *Item, bool) {
+	a, found := r.customs[name]
+	return a, found
+}
+
+// GetCustoms returns all the custom names set on the resource.
+func (r *Resource) GetCustoms() []string {
+	n := make([]string, 0, len(r.customs))
+	for a := range r.customs {
 		n = append(n, a)
 	}
 	return n

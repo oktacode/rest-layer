@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/rs/cors"
-	"github.com/rs/rest-layer/resource"
-	"github.com/rs/rest-layer/rest"
+	"github.com/oktacode/rest-layer/resource"
+	"github.com/oktacode/rest-layer/rest"
 )
 
 func main() {

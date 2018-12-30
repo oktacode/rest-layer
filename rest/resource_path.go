@@ -5,8 +5,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/rs/rest-layer/resource"
-	"github.com/rs/rest-layer/schema/query"
+	"github.com/oktacode/rest-layer/resource"
+	"github.com/oktacode/rest-layer/schema/query"
 )
 
 // ResourcePath is the list of ResourcePathComponent leading to the requested resource
