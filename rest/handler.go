@@ -69,6 +69,15 @@ func (h *Handler) ServeHTTPC(ctx context.Context, w http.ResponseWriter, r *http
 	if headers == nil {
 		headers = http.Header{}
 	}
+
+	// Custom handler
+	name := route.ResourcePath.Values()[""]
+	if name != nil {
+		if customHandler, found := route.Resource().GetCustom(name.(string)); found {
+			body = customHandler(ctx, r)
+		}
+	}
+
 	if h.FallbackHandlerFunc != nil && (body == errResourceNotFound || body == ErrInvalidMethod) {
 		h.FallbackHandlerFunc(ctx, w, r)
 		return

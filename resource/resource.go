@@ -3,6 +3,7 @@ package resource
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"net/url"
 	"sort"
 	"time"
@@ -22,7 +23,7 @@ type Resource struct {
 	conf        Conf
 	resources   subResources
 	aliases     map[string]url.Values
-	customs     map[string]func(*Item) *Item
+	customs     map[string]func(ctx context.Context, r *http.Request) interface{}
 	hooks       eventHandler
 }
 
@@ -82,7 +83,7 @@ func newResource(name string, s schema.Schema, h Storer, c Conf) *Resource {
 		conf:      c,
 		resources: subResources{},
 		aliases:   map[string]url.Values{},
-		customs:   map[string]func(*Item) *Item{},
+		customs:   map[string]func(ctx context.Context, r *http.Request) interface{}{},
 	}
 }
 
@@ -220,12 +221,12 @@ func (r *Resource) GetAliases() []string {
 // Custom adds an pre-built resource query on /<resource>/<custom> with custom response and logic behind it.
 //
 // This method will panic an custom or a resource with the same name is already bound.
-func (r *Resource) Custom(name string, v func(*Item) *Item) {
+func (r *Resource) Custom(name string, v func(ctx context.Context, r *http.Request) interface{}) {
 	r.customs[name] = v
 }
 
 // GetCustom returns the custom set for the name if any.
-func (r *Resource) GetCustom(name string) (func(*Item) *Item, bool) {
+func (r *Resource) GetCustom(name string) (func(ctx context.Context, r *http.Request) interface{}, bool) {
 	a, found := r.customs[name]
 	return a, found
 }
@@ -359,6 +360,8 @@ func (r *Resource) find(ctx context.Context, q *query.Query, forceTotal bool) (l
 			})
 		}(time.Now())
 	}
+
+	//Check storage
 	if err = r.hooks.onFind(ctx, q); err == nil {
 		list, err = r.storage.Find(ctx, q)
 		if err == nil && list.Total == -1 && forceTotal {
@@ -368,6 +371,14 @@ func (r *Resource) find(ctx context.Context, q *query.Query, forceTotal bool) (l
 		}
 	}
 	r.hooks.onFound(ctx, q, &list, &err)
+
+	// //Check custom paths
+	// for _, predicatePath := range q.Predicate {
+	// 	if customPredicateMethod, found := r.GetCustom(predicatePath.String()); found {
+	// 		customPredicateMethod(&item)
+	// 	}
+	// }
+
 	return
 }
 

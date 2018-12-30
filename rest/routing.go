@@ -81,6 +81,7 @@ func FindRoute(index resource.Index, req *http.Request) (*RouteMatch, error) {
 func findRoute(path string, index resource.Index, route *RouteMatch) error {
 	// Extract the first component of the path.
 	var name string
+
 	name, path = nextPathComponent(path)
 
 	resourcePath := name
@@ -97,10 +98,19 @@ func findRoute(path string, index resource.Index, route *RouteMatch) error {
 			var id string
 			id, path = nextPathComponent(path)
 
+			// Check if it's custom endpoint
+			if _, found := rsrc.GetCustom(id); found {
+				if err := route.ResourcePath.append(rsrc, rsrc.ParentField(), id, name); err != nil {
+					return err
+				}
+				return nil
+			}
+
 			// Handle sub-resources (/resource1/id1/resource2/id2).
 			if len(path) >= 1 {
 				subPathComp, _ := nextPathComponent(path)
 				subResourcePath := resourcePath + "." + subPathComp
+
 				if subResource, found := index.GetResource(subResourcePath, nil); found {
 					// Append the intermediate resource path.
 					if err := route.ResourcePath.append(rsrc, subResource.ParentField(), id, name); err != nil {
@@ -114,11 +124,6 @@ func findRoute(path string, index resource.Index, route *RouteMatch) error {
 					route.ResourcePath.clear()
 					return errResourceNotFound
 				}
-				return nil
-			}
-
-			// Handle customs (/resource/custom)
-			if _, found := rsrc.GetCustom(id); found {
 				return nil
 			}
 

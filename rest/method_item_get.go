@@ -24,6 +24,7 @@ func itemGet(ctx context.Context, r *http.Request, route *RouteMatch) (status in
 		return ErrNotFound.Code, nil, ErrNotFound
 	}
 	item := list.Items[0]
+
 	// Handle conditional request: If-None-Match.
 	if compareEtag(r.Header.Get("If-None-Match"), item.ETag) {
 		return 304, nil, nil
@@ -38,6 +39,7 @@ func itemGet(ctx context.Context, r *http.Request, route *RouteMatch) (status in
 			return 304, nil, nil
 		}
 	}
+
 	item.Payload, err = q.Projection.Eval(ctx, item.Payload, restResource{rsrc})
 	if err != nil {
 		e = NewError(err)
