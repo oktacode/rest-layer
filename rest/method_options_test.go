@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/rs/rest-layer/resource"
-	"github.com/rs/rest-layer/schema"
+	"github.com/oktacode/rest-layer/resource"
+	"github.com/oktacode/rest-layer/schema"
 	"github.com/stretchr/testify/assert"
 )
 

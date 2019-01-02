@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/rs/rest-layer/schema"
+	"github.com/oktacode/rest-layer/schema"
 )
 
 func TestProjectionValidate(t *testing.T) {

@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/rs/rest-layer/resource"
+	"github.com/oktacode/rest-layer/resource"
 )
 
 // Handler is a net/http compatible handler used to serve the configured REST
@@ -64,11 +64,17 @@ func (h *Handler) ServeHTTPC(ctx context.Context, w http.ResponseWriter, r *http
 	ctx = contextWithRoute(ctx, route)
 	ctx = contextWithIndex(ctx, h.index)
 
-	// Execute the main route handler
-	status, headers, body := routeHandler(ctx, r, route)
+	status, headers, body := customRouteHandler(ctx, r, route)
+	if body != ErrInvalidMethod {
+		h.sendResponse(ctx, w, status, headers, body, skipBody)
+		return
+	}
+
+	status, headers, body = routeHandler(ctx, r, route)
 	if headers == nil {
 		headers = http.Header{}
 	}
+
 	if h.FallbackHandlerFunc != nil && (body == errResourceNotFound || body == ErrInvalidMethod) {
 		h.FallbackHandlerFunc(ctx, w, r)
 		return
@@ -79,7 +85,21 @@ func (h *Handler) ServeHTTPC(ctx context.Context, w http.ResponseWriter, r *http
 			status = 204
 		}
 	}
+
 	h.sendResponse(ctx, w, status, headers, body, skipBody)
+}
+
+// customHandler executes custom handler methods
+func customRouteHandler(ctx context.Context, r *http.Request, route *RouteMatch) (status int, headers http.Header, body interface{}) {
+	name := route.ResourcePath.Values()[""]
+	if name != nil && name != "" {
+		if customHandler, found := route.Resource().GetCustom(name.(string)); found {
+			customBody := customHandler(ctx, r)
+			return 200, http.Header{}, customBody
+		}
+	}
+
+	return 200, http.Header{}, ErrInvalidMethod
 }
 
 // routeHandler executes the appropriate method handler for the request if

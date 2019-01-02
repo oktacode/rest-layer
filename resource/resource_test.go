@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/rs/rest-layer/schema"
+	"github.com/oktacode/rest-layer/schema"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -56,6 +56,10 @@ func TestResourceBind(t *testing.T) {
 					},
 					"filter": schema.Param{
 						Description: "The filter query",
+						Validator:   schema.String{},
+					},
+					"aggregation": schema.Param{
+						Description: "The aggregation query",
 						Validator:   schema.String{},
 					},
 				},

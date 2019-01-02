@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/graphql-go/graphql"
-	"github.com/rs/rest-layer/resource"
-	"github.com/rs/rest-layer/schema/query"
+	"github.com/oktacode/rest-layer/resource"
+	"github.com/oktacode/rest-layer/schema/query"
 )
 
 func newRootQuery(idx resource.Index) *graphql.Object {
@@ -74,6 +74,9 @@ var listArgs = graphql.FieldConfigArgument{
 	"filter": &graphql.ArgumentConfig{
 		Type: graphql.String,
 	},
+	"aggregation": &graphql.ArgumentConfig{
+		Type: graphql.String,
+	},
 	"sort": &graphql.ArgumentConfig{
 		Type: graphql.String,
 	},
@@ -120,6 +123,17 @@ func listParamResolver(r *resource.Resource, p graphql.ResolveParams, params url
 		}
 		q.Predicate = p
 	}
+	// TODO: GraphQL Aggregation
+	// if aggregation, ok := p.Args["aggregation"].(string); ok && aggregation != "" {
+	// 	a, err := query.ParseAggregate(aggregation)
+	// 	if err == nil {
+	// 		err = a.Prepare(r.Validator())
+	// 	}
+	// 	if err != nil {
+	// 		return nil, fmt.Errorf("invalid `aggregation` parameter: %v", err)
+	// 	}
+	// 	q.Aggregate = a
+	// }
 	if params != nil {
 		if filter := params.Get("filter"); filter != "" {
 			p, err := query.ParsePredicate(filter)

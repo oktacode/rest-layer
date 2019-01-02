@@ -1,4 +1,4 @@
-module github.com/rs/rest-layer
+module github.com/oktacode/rest-layer
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect

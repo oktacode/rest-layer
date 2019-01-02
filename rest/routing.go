@@ -7,8 +7,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/rs/rest-layer/resource"
-	"github.com/rs/rest-layer/schema/query"
+	"github.com/oktacode/rest-layer/resource"
+	"github.com/oktacode/rest-layer/schema/query"
 )
 
 // RouteMatch represent a REST request's matched resource with the method to
@@ -81,6 +81,7 @@ func FindRoute(index resource.Index, req *http.Request) (*RouteMatch, error) {
 func findRoute(path string, index resource.Index, route *RouteMatch) error {
 	// Extract the first component of the path.
 	var name string
+
 	name, path = nextPathComponent(path)
 
 	resourcePath := name
@@ -97,10 +98,19 @@ func findRoute(path string, index resource.Index, route *RouteMatch) error {
 			var id string
 			id, path = nextPathComponent(path)
 
+			// Check if it's custom endpoint
+			if _, found := rsrc.GetCustom(id); found {
+				if err := route.ResourcePath.append(rsrc, rsrc.ParentField(), id, name); err != nil {
+					return err
+				}
+				return nil
+			}
+
 			// Handle sub-resources (/resource1/id1/resource2/id2).
 			if len(path) >= 1 {
 				subPathComp, _ := nextPathComponent(path)
 				subResourcePath := resourcePath + "." + subPathComp
+
 				if subResource, found := index.GetResource(subResourcePath, nil); found {
 					// Append the intermediate resource path.
 					if err := route.ResourcePath.append(rsrc, subResource.ParentField(), id, name); err != nil {
@@ -196,10 +206,12 @@ func (r *RouteMatch) Query() (*query.Query, *Error) {
 	switch r.Method {
 	case "DELETE":
 		qp.parsePredicate(r.Params)
+		qp.parseAggregate(r.Params)
 		qp.parseWindow(r.Params, false)
 		qp.parseSort(r.Params)
 	case "HEAD", "GET":
 		qp.parsePredicate(r.Params)
+		qp.parseAggregate(r.Params)
 		qp.parseWindow(r.Params, true)
 		qp.parseSort(r.Params)
 		qp.parseProjection(r.Params)
@@ -264,6 +276,21 @@ func (qp *queryParser) parsePredicate(params url.Values) {
 				qp.addIssue("filter", err.Error())
 			} else {
 				qp.q.Predicate = append(qp.q.Predicate, p...)
+			}
+		}
+	}
+}
+
+func (qp *queryParser) parseAggregate(params url.Values) {
+	if aggregations, found := params["aggregation"]; found {
+		// If several filter parameters are present, merge them using $and
+		for _, aggregation := range aggregations {
+			if a, err := query.ParseAggregate(aggregation); err != nil {
+				qp.addIssue("aggregation", err.Error())
+			} else if err := a.Prepare(qp.rsc.Validator()); err != nil {
+				qp.addIssue("aggregation", err.Error())
+			} else {
+				qp.q.Aggregate = append(qp.q.Aggregate, a...)
 			}
 		}
 	}

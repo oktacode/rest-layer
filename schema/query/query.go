@@ -23,7 +23,7 @@ full REST Layer documentation.
 */
 package query
 
-import "github.com/rs/rest-layer/schema"
+import "github.com/oktacode/rest-layer/schema"
 
 // Query defines the criteria of a query to be applied on a resource validated
 // by a schema.Schema.
@@ -41,6 +41,10 @@ type Query struct {
 	//
 	// A DLS can be used to build a predicate from a MongoDB like expressions.
 	Predicate Predicate
+
+	// Aggregate defines the criteria an item must meet in order to be
+	// considered for grouping result set
+	Aggregate Aggregate
 
 	// Sort is a list of fields or sub-fields to use for sorting the result set.
 	Sort Sort
