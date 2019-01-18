@@ -149,6 +149,7 @@ As REST Layer is a simple `net/http` handler. You can use standard middleware to
 - [x] [ElasticSearch](http://github.com/oktacode/rest-layer-es)
 - [x] [SQL](https://github.com/apuigsech/rest-layer-sql) (third party)
 - [x] [Google Datastore](https://github.com/ajcrowe/rest-layer-datastore) (third party)
+- [x] [Kubernetes ConfigMap](https://github.com/Segence/rest-layer-kubernetes-configmap) (third party)
 - [ ] Redis
 - [ ] Google BigTable
 
@@ -964,6 +965,29 @@ $ http -b :8080/api/users/ar6eimekj5lfktka9mt0/posts fields=='meta{title,body}'
 [
     {
         "_etag": "ar6eimukj5lfl07r0uv0",
+        "meta": {
+            "title": "test",
+            "body": "example"
+        }
+    }
+]
+```
+
+Also `all fields` expansion is supported:
+```sh
+$ http -b :8080/api/users/ar6eimekj5lfktka9mt0/posts fields=='*,user{*}'
+[
+    {
+        "_etag": "ar6eimukj5lfl07r0uv0",
+        "id": "ar6eimukj5lfl07r0ugz",
+        "created": "2015-07-27T21:46:55.355857401+02:00",
+        "updated": "2015-07-27T21:46:55.355857989+02:00",
+        "user": {
+          "id": "ar6eimukj5lfl07gzb0b",
+          "created": "2015-07-24T21:46:55.355857401+02:00",
+          "updated": "2015-07-24T21:46:55.355857989+02:00",
+          "name": "John Snow",
+        },
         "meta": {
             "title": "test",
             "body": "example"
