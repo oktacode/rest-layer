@@ -254,7 +254,9 @@ func (s Schema) validate(changes map[string]interface{}, base map[string]interfa
 	}
 	// Apply changes to the base in doc
 	for field, value := range base {
-		doc[field] = value
+		if _, found := s.Fields[field]; found {
+			doc[field] = value
+		}
 	}
 	for field, value := range changes {
 		if value == Tombstone {
@@ -273,6 +275,8 @@ func (s Schema) validate(changes map[string]interface{}, base map[string]interfa
 	for field, value := range doc {
 		// Check invalid field (fields provided in the payload by not present in
 		// the schema).
+
+		//TODO: Repair validation
 		def, found := s.Fields[field]
 		if !found {
 			addFieldError(errs, field, "invalid field")
